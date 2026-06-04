@@ -1,36 +1,250 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# OpenTaskScheduler
 
-## Getting Started
+A self-hosted web app for scheduling prompts against a local LLM. Define tasks, attach a schedule, and let the app call your [LM Studio](https://lmstudio.ai) instance automatically — storing every response for review.
 
-First, run the development server:
+No cloud. No subscriptions. Runs entirely on your machine.
+
+---
+
+## Features
+
+- **4 schedule types** — hourly, daily, run-once, or run N times with a fixed interval
+- **Automatic execution** — a single cron tick fires every minute and runs all due tasks
+- **Manual run anytime** — trigger any task on demand, regardless of its schedule state
+- **Full execution history** — every run is recorded with the prompt sent, response, error (if any), and duration
+- **Re-activate completed tasks** — edit a completed task to give it a new schedule and it comes back to life
+- **Pause / resume** — suspend a task without deleting it
+- **Filterable execution log** — filter by task and status, paginated
+- **Copy response** — one-click copy on any LLM response
+- **Modern dark UI** — slate/indigo theme, no external UI library
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | [Next.js 16](https://nextjs.org) — App Router, JavaScript only |
+| Database | MySQL 8 via [`mysql2/promise`](https://github.com/sidorares/node-mysql2) |
+| Scheduler | [`node-cron`](https://github.com/node-cron/node-cron) |
+| Styling | [Tailwind CSS v4](https://tailwindcss.com) |
+| LLM | [LM Studio](https://lmstudio.ai) (OpenAI-compatible local API) |
+
+---
+
+## Prerequisites
+
+- **Node.js** 18 or later
+- **MySQL** 8 or later
+- **LM Studio** with at least one model loaded and the local server running
+
+---
+
+## Quick Start
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/pushkarkumarrajada/llm-scheduler.git
+cd llm-scheduler
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure environment variables
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local` with your MySQL credentials and LM Studio URL:
+
+```env
+DATABASE_HOST=localhost
+DATABASE_PORT=3306
+DATABASE_USER=root
+DATABASE_PASSWORD=your_password
+DATABASE_NAME=task_scheduler
+
+LMSTUDIO_BASE_URL=http://localhost:1234/v1
+LMSTUDIO_API_KEY=lm-studio
+```
+
+### 4. Create the database and run the schema
+
+```bash
+# Create the database
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS task_scheduler;"
+
+# Run the schema (creates tasks and task_executions tables)
+mysql -u root -p task_scheduler < schema.sql
+```
+
+> **macOS note:** If `mysql` isn't in your PATH, use the full path:
+> `/usr/local/mysql/bin/mysql` (MySQL Community Server) or `/opt/homebrew/bin/mysql` (Homebrew)
+
+### 5. Start LM Studio
+
+Open LM Studio, load a model, and start the local server (default: `http://localhost:1234`).
+
+### 6. Start the app
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### 7. Verify everything is connected
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+GET http://localhost:3000/api/health
+→ { "ok": true, "db": "connected" }
+```
 
-## Learn More
+You should also see this in the terminal when the server starts:
 
-To learn more about Next.js, take a look at the following resources:
+```
+[scheduler] cron tick registered — runs every minute
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Schedule Types
 
-## Deploy on Vercel
+| Type | Required fields | Behaviour |
+|------|----------------|-----------|
+| `hourly` | Minute (0–59) | Runs at that minute of every hour, repeating forever until paused |
+| `daily` | Time of day | Runs once per day at that time, repeating forever until paused |
+| `adhoc_once` | — | Runs a single time within the next minute, then completes |
+| `adhoc_n_times` | Max runs, interval (minutes) | First run is immediate; subsequent runs are `interval` minutes apart; completes after `max_runs` |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Re-activating completed tasks
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Completed tasks can be edited to change their schedule type and will be re-activated automatically. For `adhoc_n_times` tasks, `run_count` is reset so they run the full N times again.
+
+---
+
+## Manual Runs
+
+Any task — including completed ones — can be triggered manually at any time via the **▶ Run Now** button. Manual runs:
+
+- Execute immediately and record a `trigger = 'manual'` execution
+- Never change the task's `status`, `next_run_at`, or scheduled run count
+- Can be triggered as many times as you like
+
+---
+
+## API Reference
+
+All endpoints return JSON. Error responses include `{ "error": "message" }`.
+
+### Tasks
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/tasks` | List all tasks (includes last execution status) |
+| `POST` | `/api/tasks` | Create a task |
+| `GET` | `/api/tasks/:id` | Get a single task |
+| `PUT` | `/api/tasks/:id` | Update a task; or `{ action: "pause" \| "resume" }` |
+| `DELETE` | `/api/tasks/:id` | Delete a task and all its executions |
+| `POST` | `/api/tasks/:id/run` | Trigger a manual run immediately |
+
+### Executions
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/executions?taskId=&status=&page=` | List executions (filterable, paginated 25/page) |
+| `GET` | `/api/executions/:id` | Get a single execution |
+| `DELETE` | `/api/executions/:id` | Delete an execution record |
+
+### Health
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/health` | Returns `{ ok: true, db: "connected" }` if DB is reachable |
+
+---
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_HOST` | `localhost` | MySQL host |
+| `DATABASE_PORT` | `3306` | MySQL port |
+| `DATABASE_USER` | `root` | MySQL user |
+| `DATABASE_PASSWORD` | — | MySQL password |
+| `DATABASE_NAME` | `task_scheduler` | Database name |
+| `LMSTUDIO_BASE_URL` | `http://localhost:1234/v1` | LM Studio base URL |
+| `LMSTUDIO_API_KEY` | `lm-studio` | API key (any non-empty string works for LM Studio) |
+| `LLM_TIMEOUT_MS` | `120000` | Max ms to wait for a single LLM response before failing |
+
+---
+
+## Project Structure
+
+```
+OpenTaskScheduler/
+├── instrumentation.js     Registers the cron tick on server boot
+├── schema.sql             Database DDL
+├── .env.example           Environment variable template
+├── app/
+│   ├── layout.js          Root layout + Navbar
+│   ├── page.js            Dashboard
+│   ├── not-found.js       404 page
+│   ├── tasks/
+│   │   ├── new/page.js    Create task
+│   │   └── [id]/
+│   │       ├── page.js    Task detail + execution history
+│   │       └── edit/      Edit task
+│   ├── executions/
+│   │   └── page.js        Global execution log
+│   └── api/               REST API routes
+├── lib/
+│   ├── db.js              MySQL pool + query() helper
+│   ├── schedule.js        computeNextRun(), validateTask(), scheduleLabel()
+│   ├── runner.js          runTask() — shared execution logic
+│   └── llm.js             callLLM() — LM Studio API client
+└── components/            UI components
+```
+
+---
+
+## How the Scheduler Works
+
+The scheduler uses a **single tick** approach rather than per-task cron jobs, which makes it robust to task changes without needing to re-register jobs.
+
+`instrumentation.js` registers one `node-cron` job that fires every minute. Each tick:
+
+1. Queries all `active` tasks where `next_run_at <= NOW()`
+2. Runs them sequentially (prevents double-triggering slow tasks)
+3. Records the result in `task_executions`
+4. Recomputes `next_run_at` and `status` per schedule rules
+5. An `isTicking` flag prevents a slow tick from stacking with the next one
+
+---
+
+## Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, code guidelines, and how to submit a PR.
+
+---
+
+## Roadmap
+
+- [ ] Per-task system prompt and temperature
+- [ ] Streaming responses in the run-now view
+- [ ] Export executions to CSV
+- [ ] Success rate / runs-over-time charts on the dashboard
+- [ ] Pause-all / scheduler on-off toggle
+- [ ] Docker Compose setup
+
+---
+
+## License
+
+[MIT](LICENSE) — free to use, modify, and distribute.

@@ -30,8 +30,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — copy .env.example and fill in your values
 .env*
+
+# Claude Code local memory (not needed for contributors)
+.claude/
 
 # vercel
 .vercel

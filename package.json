@@ -1,5 +1,5 @@
 {
-  "name": "open-task-scheduler-temp",
+  "name": "task-scheduler",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -8,7 +8,9 @@
     "start": "next start"
   },
   "dependencies": {
+    "mysql2": "^3.22.4",
     "next": "16.2.7",
+    "node-cron": "^4.2.1",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
