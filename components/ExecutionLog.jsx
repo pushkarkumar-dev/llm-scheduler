@@ -7,6 +7,8 @@ import Toast from './Toast';
 import ConfirmDialog from './ConfirmDialog';
 import Icon from './Icon';
 import { SkeletonRow } from './Skeleton';
+import { useCategory } from './CategoryProvider';
+import { categoriesForView } from '@/lib/categories';
 
 const STATUS_OPTIONS = ['', 'success', 'failed', 'running', 'pending'];
 
@@ -82,6 +84,7 @@ export default function ExecutionLog({ initialTaskId = '', tasks = [] }) {
   const [toast, setToast]     = useState(null);
   const [confirm, setConfirm] = useState(null);
 
+  const { view } = useCategory();
   const showToast = (message, type = 'info') => setToast({ message, type });
   const limit = 25;
 
@@ -91,6 +94,8 @@ export default function ExecutionLog({ initialTaskId = '', tasks = [] }) {
       const qs = new URLSearchParams();
       if (taskId) qs.set('taskId', taskId);
       if (status)  qs.set('status', status);
+      // Apply the global category filter only in the global log, not a single task's history.
+      if (!initialTaskId) qs.set('category', categoriesForView(view).join(','));
       qs.set('page', page);
       const data = await (await fetch(`/api/executions?${qs}`)).json();
       setRows(data.rows ?? []);
@@ -100,10 +105,10 @@ export default function ExecutionLog({ initialTaskId = '', tasks = [] }) {
     } finally {
       setLoading(false);
     }
-  }, [taskId, status, page]);
+  }, [taskId, status, page, view, initialTaskId]);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { setPage(1); }, [taskId, status]);
+  useEffect(() => { setPage(1); }, [taskId, status, view]);
 
   async function deleteRow(id) {
     setConfirm(null);
@@ -187,6 +192,12 @@ export default function ExecutionLog({ initialTaskId = '', tasks = [] }) {
                   <td className="tnum" style={{ padding: '13px 16px', fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{formatDate(ex.started_at)}</td>
                   <td className="tnum" style={{ padding: '13px 16px', fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{duration(ex.duration_ms) ?? '—'}</td>
                   <td style={{ padding: '13px 16px', maxWidth: 360 }}>
+                    {ex.input_data && (
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 7, fontSize: 11.5, color: 'var(--accent-soft)', background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 6, padding: '5px 8px' }}>
+                        <Icon name="bolt" size={12} style={{ marginTop: 1 }} />
+                        <span style={{ wordBreak: 'break-word' }}><strong style={{ fontWeight: 600 }}>Input:</strong> {ex.input_data}</span>
+                      </div>
+                    )}
                     {ex.status === 'failed' ? <ExpandableText content={ex.error} isError /> : <ExpandableText content={ex.response} isError={false} />}
                   </td>
                   <td style={{ padding: '13px 16px' }}>

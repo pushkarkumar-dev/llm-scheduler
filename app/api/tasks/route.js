@@ -23,10 +23,12 @@ export async function POST(request) {
 
     const nextRun = computeNextRun({ ...data, run_count: 0 });
 
+    const acceptsInput = data.accepts_input ? 1 : 0;
+    const category = data.category ?? 'experimental';
     const result = await query(
       `INSERT INTO tasks (name, description, prompt, model, schedule_type,
-        hourly_minute, daily_time, interval_minutes, max_runs, next_run_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        hourly_minute, daily_time, interval_minutes, max_runs, category, accepts_input, input_label, next_run_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         data.name.trim(),
         data.description?.trim() || null,
@@ -37,6 +39,9 @@ export async function POST(request) {
         data.daily_time ?? null,
         data.interval_minutes ?? null,
         data.max_runs ?? null,
+        category,
+        acceptsInput,
+        acceptsInput ? (data.input_label?.trim() || null) : null,
         nextRun,
       ]
     );

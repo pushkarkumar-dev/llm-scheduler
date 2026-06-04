@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Icon from './Icon';
 import Button from './Button';
+import CategorySwitcher from './CategorySwitcher';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -64,7 +65,8 @@ export default function Navbar() {
           })}
         </div>
 
-        <div style={{ marginLeft: 'auto' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <CategorySwitcher />
           <Button href="/tasks/new" variant="primary" size="sm" icon="plus">New Task</Button>
         </div>
       </div>

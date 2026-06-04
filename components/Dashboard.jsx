@@ -5,10 +5,13 @@ import Link from 'next/link';
 import StatusBadge from './StatusBadge';
 import Toast from './Toast';
 import ConfirmDialog from './ConfirmDialog';
+import RunInputModal from './RunInputModal';
 import Button from './Button';
 import Icon from './Icon';
 import { SkeletonCard, SkeletonRow } from './Skeleton';
 import { scheduleLabel } from '@/lib/schedule';
+import { useCategory } from './CategoryProvider';
+import { categoriesForView, CATEGORY_META } from '@/lib/categories';
 
 function formatDate(dt) {
   if (!dt) return '—';
@@ -23,7 +26,9 @@ export default function Dashboard() {
   const [acting, setActing]   = useState(null);
   const [toast, setToast]     = useState(null);
   const [confirm, setConfirm] = useState(null);
+  const [runPrompt, setRunPrompt] = useState(null); // task awaiting run-time input
 
+  const { view } = useCategory();
   const showToast = (message, type = 'info') => setToast({ message, type });
 
   const load = useCallback(async () => {
@@ -72,10 +77,20 @@ export default function Dashboard() {
     }
   }
 
-  async function runNow(id) {
+  // Tasks that accept input open a modal first; others run immediately.
+  function handleRunClick(task) {
+    if (task.accepts_input) setRunPrompt(task);
+    else runNow(task.id);
+  }
+
+  async function runNow(id, input = '') {
     setActing(id + 'run');
     try {
-      const res  = await fetch(`/api/tasks/${id}/run`, { method: 'POST' });
+      const res  = await fetch(`/api/tasks/${id}/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input }),
+      });
       const data = await res.json();
       showToast(data.success ? 'Task ran successfully.' : `Run failed: ${data.error ?? 'Unknown error'}`, data.success ? 'success' : 'error');
       const list = await (await fetch('/api/tasks')).json();
@@ -87,9 +102,12 @@ export default function Dashboard() {
     }
   }
 
-  const active    = tasks.filter(t => t.status === 'active').length;
-  const completed = tasks.filter(t => t.status === 'completed').length;
-  const failed    = tasks.filter(t => t.last_exec_status === 'failed').length;
+  const allowed = categoriesForView(view);
+  const visibleTasks = tasks.filter(t => allowed.includes(t.category ?? 'experimental'));
+
+  const active    = visibleTasks.filter(t => t.status === 'active').length;
+  const completed = visibleTasks.filter(t => t.status === 'completed').length;
+  const failed    = visibleTasks.filter(t => t.last_exec_status === 'failed').length;
 
   const stats = [
     { key: 'active',    label: 'Active Tasks',  value: active,    color: 'var(--success)', icon: 'circleCheck' },
@@ -104,6 +122,14 @@ export default function Dashboard() {
         <ConfirmDialog
           message={`Delete "${confirm.name}" and all its execution history? This cannot be undone.`}
           onConfirm={() => deleteTask(confirm.id)} onCancel={() => setConfirm(null)}
+        />
+      )}
+      {runPrompt && (
+        <RunInputModal
+          taskName={runPrompt.name}
+          label={runPrompt.input_label}
+          onCancel={() => setRunPrompt(null)}
+          onRun={(input) => { const id = runPrompt.id; setRunPrompt(null); runNow(id, input); }}
         />
       )}
 
@@ -145,26 +171,37 @@ export default function Dashboard() {
             <tbody>{[1,2,3].map(i => <SkeletonRow key={i} cols={6} />)}</tbody>
           </table>
         </div>
-      ) : tasks.length === 0 ? (
-        <EmptyState />
+      ) : visibleTasks.length === 0 ? (
+        <EmptyState filtered={tasks.length > 0} />
       ) : (
         <div className="card" style={{ overflow: 'hidden' }}>
           <table className="w-full" style={{ fontSize: 13 }}>
             <thead><Thead /></thead>
             <tbody>
-              {tasks.map((task, i) => {
+              {visibleTasks.map((task, i) => {
                 const isActing = acting?.startsWith(String(task.id));
+                const cat = CATEGORY_META[task.category ?? 'experimental'];
                 return (
                   <tr key={task.id} className="animate-page"
-                    style={{ borderBottom: i < tasks.length - 1 ? '1px solid var(--border)' : 'none', opacity: isActing ? 0.45 : 1, transition: 'opacity 0.15s, background-color 0.12s', animationDelay: `${i * 35}ms` }}
+                    style={{ borderBottom: i < visibleTasks.length - 1 ? '1px solid var(--border)' : 'none', opacity: isActing ? 0.45 : 1, transition: 'opacity 0.15s, background-color 0.12s', animationDelay: `${i * 35}ms` }}
                     onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
                     onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
                     <td style={{ padding: '14px 16px' }}>
-                      <Link href={`/tasks/${task.id}`} style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)', textDecoration: 'none' }}
-                        onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-soft)'}
-                        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-primary)'}>
-                        {task.name}
-                      </Link>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                        <Link href={`/tasks/${task.id}`} style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)', textDecoration: 'none' }}
+                          onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-soft)'}
+                          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-primary)'}>
+                          {task.name}
+                        </Link>
+                        <span title={cat.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 5, color: cat.color, background: `${cat.color}14`, border: `1px solid ${cat.color}33` }}>
+                          <Icon name={cat.icon} size={10} /> {cat.label}
+                        </span>
+                        {!!task.accepts_input && (
+                          <span title="Accepts extra input at run time" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 5, color: 'var(--accent-soft)', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)' }}>
+                            <Icon name="bolt" size={10} /> Input
+                          </span>
+                        )}
+                      </span>
                       {task.description && (
                         <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 3, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.description}</p>
                       )}
@@ -182,7 +219,7 @@ export default function Dashboard() {
                     </td>
                     <td style={{ padding: '14px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
-                        <Button onClick={() => runNow(task.id)} disabled={!!acting} variant="accent" size="xs" icon="play">Run</Button>
+                        <Button onClick={() => handleRunClick(task)} disabled={!!acting} variant="accent" size="xs" icon="play">Run</Button>
                         {task.status === 'active' && <Button onClick={() => togglePause(task)} disabled={!!acting} variant="secondary" size="xs" icon="pause">Pause</Button>}
                         {task.status === 'paused' && <Button onClick={() => togglePause(task)} disabled={!!acting} variant="success" size="xs" icon="play">Resume</Button>}
                         <Button href={`/tasks/${task.id}/edit`} variant="ghost" size="xs" icon="edit" title="Edit" />
@@ -210,16 +247,22 @@ function Thead() {
   );
 }
 
-function EmptyState() {
+function EmptyState({ filtered = false }) {
   return (
     <div className="card" style={{ padding: '72px 32px', textAlign: 'center' }}>
       <div style={{ width: 60, height: 60, borderRadius: 18, margin: '0 auto 22px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, var(--accent-muted), var(--bg-elevated))', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-glow)' }}>
-        <Icon name="calendar" size={26} style={{ color: 'var(--accent)' }} />
+        <Icon name={filtered ? 'list' : 'calendar'} size={26} style={{ color: 'var(--accent)' }} />
       </div>
-      <p style={{ fontSize: 17, fontWeight: 650, marginBottom: 8, letterSpacing: '-0.02em' }}>No tasks yet</p>
-      <p style={{ fontSize: 13.5, color: 'var(--text-muted)', marginBottom: 24 }}>Schedule your first LLM prompt to get started</p>
+      <p style={{ fontSize: 17, fontWeight: 650, marginBottom: 8, letterSpacing: '-0.02em' }}>
+        {filtered ? 'No tasks in this view' : 'No tasks yet'}
+      </p>
+      <p style={{ fontSize: 13.5, color: 'var(--text-muted)', marginBottom: 24 }}>
+        {filtered ? 'Try a different category, or create a task here.' : 'Schedule your first LLM prompt to get started'}
+      </p>
       <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <Button href="/tasks/new" variant="primary" size="md" icon="plus">Create your first task</Button>
+        <Button href="/tasks/new" variant="primary" size="md" icon="plus">
+          {filtered ? 'New Task' : 'Create your first task'}
+        </Button>
       </div>
     </div>
   );

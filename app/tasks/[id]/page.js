@@ -7,6 +7,7 @@ import Button from '@/components/Button';
 import Icon from '@/components/Icon';
 import Breadcrumb from '@/components/Breadcrumb';
 import { scheduleLabel } from '@/lib/schedule';
+import { CATEGORY_META } from '@/lib/categories';
 
 function formatDate(dt) {
   if (!dt) return '—';
@@ -44,11 +45,19 @@ export default async function TaskDetailPage({ params }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7, flexWrap: 'wrap' }}>
               <h1 style={{ fontSize: 21, fontWeight: 700, letterSpacing: '-0.025em', margin: 0 }}>{task.name}</h1>
               <StatusBadge status={task.status} />
+              {(() => {
+                const cat = CATEGORY_META[task.category ?? 'experimental'];
+                return (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 600, padding: '3px 10px', borderRadius: 99, color: cat.color, background: `${cat.color}14`, border: `1px solid ${cat.color}33` }}>
+                    <Icon name={cat.icon} size={12} /> {cat.label}
+                  </span>
+                );
+              })()}
             </div>
             {task.description && <p style={{ fontSize: 13.5, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>{task.description}</p>}
           </div>
           <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-            <RunNowButton taskId={id} />
+            <RunNowButton taskId={id} taskName={task.name} acceptsInput={!!task.accepts_input} inputLabel={task.input_label} />
             <Button href={`/tasks/${id}/edit`} variant="secondary" size="sm" icon="edit">Edit</Button>
           </div>
         </div>

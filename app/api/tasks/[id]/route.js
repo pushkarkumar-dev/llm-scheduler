@@ -49,9 +49,11 @@ export async function PUT(request, { params }) {
       ? null
       : computeNextRun({ ...data, run_count: newRunCount });
 
+    const acceptsInput = data.accepts_input ? 1 : 0;
+    const category = data.category ?? task.category ?? 'experimental';
     await query(
       `UPDATE tasks SET name=?, description=?, prompt=?, model=?, schedule_type=?,
-        hourly_minute=?, daily_time=?, interval_minutes=?, max_runs=?, run_count=?, status=?, next_run_at=?
+        hourly_minute=?, daily_time=?, interval_minutes=?, max_runs=?, category=?, accepts_input=?, input_label=?, run_count=?, status=?, next_run_at=?
        WHERE id=?`,
       [
         data.name.trim(),
@@ -63,6 +65,9 @@ export async function PUT(request, { params }) {
         data.daily_time ?? null,
         data.interval_minutes ?? null,
         data.max_runs ?? null,
+        category,
+        acceptsInput,
+        acceptsInput ? (data.input_label?.trim() || null) : null,
         newRunCount,
         newStatus,
         nextRun,

@@ -22,6 +22,8 @@ const PATHS = {
   list:     <path d="M5 4h9M5 8h9M5 12h9M2.5 4v.01M2.5 8v.01M2.5 12v.01" />,
   info:     <><circle cx="8" cy="8" r="6"/><path d="M8 7.5v3M8 5.5v.5"/></>,
   spinner:  <circle cx="8" cy="8" r="5.5" strokeDasharray="26 9" strokeLinecap="round" />,
+  lock:     <><rect x="3.5" y="7" width="9" height="6.3" rx="1.4"/><path d="M5.5 7V5.2a2.5 2.5 0 015 0V7"/></>,
+  lockOpen: <><rect x="3.5" y="7" width="9" height="6.3" rx="1.4"/><path d="M5.5 7V5.2a2.5 2.5 0 014.9-.6"/></>,
 };
 
 export default function Icon({ name, size = 16, className = '', style = {}, strokeWidth = 1.6 }) {

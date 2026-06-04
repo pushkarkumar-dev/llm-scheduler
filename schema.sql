@@ -15,6 +15,11 @@ CREATE TABLE IF NOT EXISTS tasks (
   status          ENUM('active','paused','completed') NOT NULL DEFAULT 'active',
   next_run_at     DATETIME,
 
+  category        ENUM('production','experimental','test') NOT NULL DEFAULT 'experimental',
+
+  accepts_input   TINYINT(1) NOT NULL DEFAULT 0,  -- if 1, manual runs can supply extra context
+  input_label     VARCHAR(255),                   -- guidance text shown in the run-time input field
+
   created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -25,6 +30,7 @@ CREATE TABLE IF NOT EXISTS task_executions (
   status       ENUM('pending','running','success','failed') NOT NULL DEFAULT 'pending',
   `trigger`    ENUM('schedule','manual') NOT NULL DEFAULT 'schedule',
   prompt_sent  TEXT,
+  input_data   TEXT,            -- run-time addendum supplied for this execution, NULL if none
   response     LONGTEXT,
   error        TEXT,
   started_at   DATETIME,
@@ -35,4 +41,5 @@ CREATE TABLE IF NOT EXISTS task_executions (
 );
 
 CREATE INDEX idx_tasks_due ON tasks (status, next_run_at);
+CREATE INDEX idx_tasks_category ON tasks (category);
 CREATE INDEX idx_exec_task ON task_executions (task_id, created_at);

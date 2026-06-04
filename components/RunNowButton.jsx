@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Icon from './Icon';
+import RunInputModal from './RunInputModal';
 
 const STATES = {
   idle:    { bg: 'var(--gradient-accent)', color: '#fff', border: 'rgba(255,255,255,0.1)', shadow: 'var(--shadow-glow), inset 0 1px 0 rgba(255,255,255,0.12)', icon: 'play',    label: 'Run Now' },
@@ -11,16 +12,21 @@ const STATES = {
   failed:  { bg: 'rgba(239,68,68,0.1)',    color: 'var(--danger-fg)',  border: 'rgba(239,68,68,0.3)',  shadow: 'none', icon: 'x',       label: 'Failed' },
 };
 
-export default function RunNowButton({ taskId }) {
+export default function RunNowButton({ taskId, taskName, acceptsInput = false, inputLabel }) {
   const [state, setState] = useState('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [modal, setModal] = useState(false);
   const router = useRouter();
 
-  async function run() {
+  async function run(input = '') {
     setState('running');
     setErrorMsg('');
     try {
-      const res  = await fetch(`/api/tasks/${taskId}/run`, { method: 'POST' });
+      const res  = await fetch(`/api/tasks/${taskId}/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input }),
+      });
       const data = await res.json();
       if (data.success) {
         setState('success');
@@ -38,11 +44,23 @@ export default function RunNowButton({ taskId }) {
     }
   }
 
+  function handleClick() {
+    if (acceptsInput) setModal(true);
+    else run();
+  }
+
   const s = STATES[state];
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <button onClick={run} disabled={state === 'running'} style={{
+      {modal && (
+        <RunInputModal
+          taskName={taskName} label={inputLabel}
+          onCancel={() => setModal(false)}
+          onRun={(input) => { setModal(false); run(input); }}
+        />
+      )}
+      <button onClick={handleClick} disabled={state === 'running'} style={{
         display: 'inline-flex', alignItems: 'center', gap: 7,
         padding: '8px 16px', borderRadius: 'var(--r-md)',
         fontSize: 13, fontWeight: 600, lineHeight: 1,

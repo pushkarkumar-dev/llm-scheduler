@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { validateTask } from '@/lib/schedule';
+import { CATEGORY_META, CATEGORY_VALUES } from '@/lib/categories';
 import Icon from './Icon';
 import Button from './Button';
 
@@ -74,6 +75,8 @@ export default function TaskForm({ initial = {} }) {
     daily_time:       initial.daily_time?.slice(0, 5) ?? '09:00',
     interval_minutes: initial.interval_minutes ?? 60,
     max_runs:         initial.max_runs         ?? 3,
+    accepts_input:    !!initial.accepts_input,
+    input_label:      initial.input_label      ?? '',
   });
 
   const [errors, setErrors]           = useState({});
@@ -149,6 +152,31 @@ export default function TaskForm({ initial = {} }) {
         <div>
           <Label>Description</Label>
           <Input value={form.description} onChange={set('description')} placeholder="Short description of what this task does" />
+        </div>
+        <div>
+          <Label>Category</Label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {CATEGORY_VALUES.map(value => {
+              const meta = CATEGORY_META[value];
+              const active = form.category === value;
+              return (
+                <button key={value} type="button" onClick={() => setForm(f => ({ ...f, category: value }))}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 14px',
+                    borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                    border: `1px solid ${active ? `${meta.color}66` : 'var(--border)'}`,
+                    background: active ? `${meta.color}1a` : 'var(--bg-base)',
+                    color: active ? meta.color : 'var(--text-secondary)',
+                    boxShadow: active ? `0 0 0 3px ${meta.color}1a` : 'none',
+                  }}
+                  onMouseEnter={e => { if (!active) e.currentTarget.style.borderColor = 'var(--border-light)'; }}
+                  onMouseLeave={e => { if (!active) e.currentTarget.style.borderColor = 'var(--border)'; }}>
+                  <Icon name={meta.icon} size={14} />
+                  {meta.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div>
           <Label required>Prompt</Label>
@@ -262,6 +290,35 @@ export default function TaskForm({ initial = {} }) {
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
               First run is immediate → then every {form.interval_minutes}m → {form.max_runs} total runs
             </p>
+          </div>
+        )}
+      </Section>
+
+      {/* Run-time input */}
+      <Section title="Run-time Input">
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
+          <button type="button" role="switch" aria-checked={form.accepts_input}
+            onClick={() => setForm(f => ({ ...f, accepts_input: !f.accepts_input }))}
+            style={{
+              flexShrink: 0, marginTop: 1, width: 38, height: 22, borderRadius: 99, padding: 2, border: 'none', cursor: 'pointer',
+              background: form.accepts_input ? 'var(--gradient-accent)' : 'var(--bg-elevated)',
+              boxShadow: form.accepts_input ? 'inset 0 0 0 1px rgba(255,255,255,0.1)' : 'inset 0 0 0 1px var(--border-light)',
+              display: 'flex', justifyContent: form.accepts_input ? 'flex-end' : 'flex-start',
+            }}>
+            <span style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 2px rgba(0,0,0,0.4)', transition: 'all 0.15s var(--ease)' }} />
+          </button>
+          <div>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>Accept extra input when run manually</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              When on, the “Run Now” button opens a field to add one-off context for that run. Scheduled runs are unaffected.
+            </div>
+          </div>
+        </label>
+
+        {form.accepts_input && (
+          <div>
+            <Label>Input prompt label <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></Label>
+            <Input value={form.input_label} onChange={set('input_label')} placeholder="e.g. What should this run focus on?" />
           </div>
         )}
       </Section>

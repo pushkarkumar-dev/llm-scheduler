@@ -24,6 +24,8 @@ No cloud. No subscriptions. Runs entirely on your machine.
 - **4 schedule types** — hourly, daily, run-once, or run N times with a fixed interval
 - **Automatic execution** — a single cron tick fires every minute and runs all due tasks
 - **Manual run anytime** — trigger any task on demand, regardless of its schedule state
+- **Run-time input** — optionally let a task accept one-off extra context at manual run time, layered on top of its base prompt without editing the task
+- **Categories** — organize tasks into Production / Experimental / Test, filter by category from the navbar, and keep Test tasks behind a UI password gate
 - **Full execution history** — every run is recorded with the prompt sent, response, error (if any), and duration
 - **Re-activate completed tasks** — edit a completed task to give it a new schedule and it comes back to life
 - **Pause / resume** — suspend a task without deleting it
@@ -100,6 +102,11 @@ mysql -u root -p task_scheduler < schema.sql
 > **macOS note:** If `mysql` isn't in your PATH, use the full path:
 > `/usr/local/mysql/bin/mysql` (MySQL Community Server) or `/opt/homebrew/bin/mysql` (Homebrew)
 
+> **Upgrading an existing install?** `schema.sql` only creates tables that don't exist yet — it won't alter existing ones. Apply incremental changes from `migrations/` instead:
+> ```bash
+> mysql -u root -p task_scheduler < migrations/001_run_time_input.sql
+> ```
+
 ### 5. Start LM Studio
 
 Open LM Studio, load a model, and start the local server (default: `http://localhost:1234`).
@@ -161,11 +168,34 @@ Completed tasks can be edited to change their schedule type and will be re-activ
 
 ## Manual Runs
 
-Any task — including completed ones — can be triggered manually at any time via the **▶ Run Now** button. Manual runs:
+Any task — including completed ones — can be triggered manually at any time via the **Run Now** button. Manual runs:
 
 - Execute immediately and record a `trigger = 'manual'` execution
 - Never change the task's `status`, `next_run_at`, or scheduled run count
 - Can be triggered as many times as you like
+
+## Run-time Input
+
+A task can opt in to **accepting extra context at manual run time** (toggle in the task form). When enabled:
+
+- The **Run Now** button opens a small prompt where you can type one-off context for *just that run*
+- The addendum is appended to the task's base prompt as a labeled block and sent to the LLM
+- It's stored per-execution (`input_data`) and shown in the execution history, so you can see exactly what steered each run
+- **Scheduled runs are unaffected** — they always use the base prompt
+
+This is useful when a task is mostly stable but you occasionally want to nudge a single run (e.g. *"focus on AI regulation today"*) without editing the task.
+
+## Categories
+
+Every task has a **category** — `Production`, `Experimental`, or `Test` — set in the task form and changeable any time by editing the task. Use the navbar switcher to filter the Dashboard and Executions log:
+
+- **All** (default) — shows Production + Experimental together
+- **Production** / **Experimental** — show just that category
+- **Test** — hidden by default; selecting it prompts for a password, then reveals Test tasks for the rest of the browser session
+
+Categories are purely organizational — they **don't affect scheduling**. A Test or Experimental task still runs on its schedule exactly like a Production one.
+
+> The Test gate is a **UI-level convenience for decluttering, not security** — anyone with access to the app or database can still reach the data. Set the password via `HIDDEN_CATEGORY_PASSWORD` in `.env.local` (defaults to `Test`).
 
 ---
 
