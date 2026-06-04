@@ -1,4 +1,4 @@
-# OpenTaskScheduler
+# llm-scheduler
 
 A self-hosted web app for scheduling prompts against a local LLM. Define tasks, attach a schedule, and let the app call your [LM Studio](https://lmstudio.ai) instance automatically — storing every response for review.
 
