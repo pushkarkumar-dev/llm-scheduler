@@ -2,6 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Icon from './Icon';
+
+const STATES = {
+  idle:    { bg: 'var(--gradient-accent)', color: '#fff', border: 'rgba(255,255,255,0.1)', shadow: 'var(--shadow-glow), inset 0 1px 0 rgba(255,255,255,0.12)', icon: 'play',    label: 'Run Now' },
+  running: { bg: 'var(--bg-elevated)',     color: 'var(--text-muted)', border: 'var(--border-light)', shadow: 'none', icon: 'spinner', label: 'Running…' },
+  success: { bg: 'rgba(16,185,129,0.12)',  color: 'var(--success-fg)', border: 'rgba(16,185,129,0.3)', shadow: 'none', icon: 'check',   label: 'Done' },
+  failed:  { bg: 'rgba(239,68,68,0.1)',    color: 'var(--danger-fg)',  border: 'rgba(239,68,68,0.3)',  shadow: 'none', icon: 'x',       label: 'Failed' },
+};
 
 export default function RunNowButton({ taskId }) {
   const [state, setState] = useState('idle');
@@ -30,37 +38,23 @@ export default function RunNowButton({ taskId }) {
     }
   }
 
-  const styles = {
-    idle:    { bg: 'linear-gradient(135deg,#6366f1,#7c3aed)', color: 'white',   border: 'rgba(255,255,255,0.08)', shadow: '0 0 16px rgba(99,102,241,0.3)' },
-    running: { bg: 'var(--bg-elevated)',                       color: 'var(--text-muted)', border: 'var(--border)', shadow: 'none' },
-    success: { bg: 'rgba(16,185,129,0.1)',                     color: '#34d399', border: 'rgba(16,185,129,0.3)', shadow: 'none' },
-    failed:  { bg: 'rgba(239,68,68,0.1)',                      color: '#f87171', border: 'rgba(239,68,68,0.3)', shadow: 'none' },
-  };
-  const s = styles[state];
-
-  const labels = { idle: '▶ Run Now', running: 'Running…', success: '✓ Done', failed: '✗ Failed' };
+  const s = STATES[state];
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <button onClick={run} disabled={state === 'running'} style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        padding: '7px 16px', borderRadius: 8,
-        fontSize: 13, fontWeight: 600,
-        background: s.bg, color: s.color,
-        border: `1px solid ${s.border}`,
-        boxShadow: s.shadow,
-        cursor: state === 'running' ? 'not-allowed' : 'pointer',
-        transition: 'all 0.15s',
-      }}>
-        {state === 'running' && (
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ animation: 'spin 1s linear infinite' }}>
-            <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="14 4" />
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-          </svg>
-        )}
-        {labels[state]}
+        display: 'inline-flex', alignItems: 'center', gap: 7,
+        padding: '8px 16px', borderRadius: 'var(--r-md)',
+        fontSize: 13, fontWeight: 600, lineHeight: 1,
+        background: s.bg, color: s.color, border: `1px solid ${s.border}`,
+        boxShadow: s.shadow, cursor: state === 'running' ? 'not-allowed' : 'pointer',
+      }}
+      onMouseEnter={e => { if (state === 'idle') { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 0 36px rgba(99,102,241,0.45), inset 0 1px 0 rgba(255,255,255,0.15)'; } }}
+      onMouseLeave={e => { if (state === 'idle') { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = s.shadow; } }}>
+        <Icon name={s.icon} size={14} />
+        {s.label}
       </button>
-      {errorMsg && <span style={{ fontSize: 12, color: '#f87171' }}>{errorMsg}</span>}
+      {errorMsg && <span style={{ fontSize: 12, color: 'var(--danger-fg)' }}>{errorMsg}</span>}
     </div>
   );
 }

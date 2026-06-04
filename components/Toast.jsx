@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
+import Icon from './Icon';
 
 const STYLES = {
-  success: { bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.25)', color: '#34d399', icon: '✓' },
-  error:   { bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.25)',  color: '#f87171', icon: '✕' },
-  info:    { bg: 'rgba(99,102,241,0.1)',  border: 'rgba(99,102,241,0.25)', color: '#a5b4fc', icon: 'ℹ' },
+  success: { accent: 'var(--success)', fg: 'var(--success-fg)', icon: 'circleCheck' },
+  error:   { accent: 'var(--danger)',  fg: 'var(--danger-fg)',  icon: 'warning' },
+  info:    { accent: 'var(--accent)',  fg: 'var(--accent-soft)', icon: 'info' },
 };
 
 export default function Toast({ message, type = 'info', onClose }) {
@@ -19,19 +20,24 @@ export default function Toast({ message, type = 'info', onClose }) {
   return (
     <div style={{
       position: 'fixed', bottom: 24, right: 24, zIndex: 100,
-      display: 'flex', alignItems: 'flex-start', gap: 10,
-      padding: '12px 16px', borderRadius: 10,
-      backgroundColor: 'var(--bg-surface)',
-      border: `1px solid ${s.border}`,
-      boxShadow: `0 8px 30px rgba(0,0,0,0.4), 0 0 0 1px ${s.border}`,
-      color: s.color, fontSize: 13.5, maxWidth: 340,
+      display: 'flex', alignItems: 'center', gap: 11,
+      padding: '13px 16px', borderRadius: 'var(--r-lg)',
+      backgroundColor: 'var(--bg-elevated)',
+      border: '1px solid var(--border-light)',
+      boxShadow: 'var(--shadow-lg)',
+      fontSize: 13.5, maxWidth: 360,
       backdropFilter: 'blur(12px)',
-      animation: 'toastIn 0.2s ease',
+      animation: 'slide-up 0.22s var(--ease-out)',
     }}>
-      <span style={{ fontWeight: 700, flexShrink: 0, marginTop: 1 }}>{s.icon}</span>
-      <span style={{ flex: 1, color: 'var(--text-primary)' }}>{message}</span>
-      <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 16, lineHeight: 1, flexShrink: 0, padding: 0 }}>×</button>
-      <style>{`@keyframes toastIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }`}</style>
+      <span style={{ display: 'flex', flexShrink: 0, width: 26, height: 26, alignItems: 'center', justifyContent: 'center', borderRadius: 7, backgroundColor: `${s.accent}1f`, color: s.fg }}>
+        <Icon name={s.icon} size={15} />
+      </span>
+      <span style={{ flex: 1, color: 'var(--text-primary)', lineHeight: 1.4 }}>{message}</span>
+      <button onClick={onClose} style={{ display: 'flex', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', flexShrink: 0, padding: 2 }}
+        onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>
+        <Icon name="x" size={14} />
+      </button>
     </div>
   );
 }

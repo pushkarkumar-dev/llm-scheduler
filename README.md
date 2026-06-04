@@ -106,6 +106,23 @@ Open LM Studio, load a model, and start the local server (default: `http://local
 
 ### 6. Start the app
 
+**Option A — macOS app (double-click)**
+
+The repo includes a native macOS launcher. First time only, mark it executable:
+
+```bash
+chmod +x llm-scheduler.app/Contents/MacOS/llm-scheduler
+```
+
+Then double-click `llm-scheduler.app` in Finder. It will:
+1. Start the dev server in a Terminal window
+2. Wait until the server is ready
+3. Open `http://localhost:3000` in your browser automatically
+
+If the server is already running, it just opens the browser.
+
+**Option B — terminal**
+
 ```bash
 npm run dev
 ```

@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# Resolve the project root — three levels up from Contents/MacOS/
+PROJECT_DIR="$(cd "$(dirname "$0")/../../../" && pwd)"
+
+# If port 3000 is already in use, just open the browser
+if lsof -Pi :3000 -sTCP:LISTEN -t >/dev/null 2>&1; then
+  open "http://localhost:3000"
+  exit 0
+fi
+
+# Check Node.js is available
+if ! command -v node >/dev/null 2>&1; then
+  # Try common install paths (nvm, homebrew, system)
+  for p in "$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node 2>/dev/null | sort -V | tail -1)/bin" \
+            /opt/homebrew/bin /usr/local/bin; do
+    [ -x "$p/node" ] && export PATH="$p:$PATH" && break
+  done
+fi
+
+if ! command -v node >/dev/null 2>&1; then
+  osascript -e 'display alert "llm-scheduler" message "Node.js was not found. Install it from https://nodejs.org and try again."'
+  exit 1
+fi
+
+# Open a Terminal window running the dev server
+osascript <<APPLESCRIPT
+tell application "Terminal"
+  set w to do script "cd '$PROJECT_DIR' && npm run dev"
+  set custom title of w to "llm-scheduler"
+  activate
+end tell
+APPLESCRIPT
+
+# Poll until port 3000 responds (max 45s)
+MAX=45
+COUNT=0
+while ! lsof -Pi :3000 -sTCP:LISTEN -t >/dev/null 2>&1; do
+  sleep 1
+  COUNT=$((COUNT + 1))
+  if [ $COUNT -ge $MAX ]; then
+    osascript -e 'display alert "llm-scheduler" message "The server did not start within 45 seconds. Check the Terminal window for errors."'
+    exit 1
+  fi
+done
+
+# Small extra delay so Next.js finishes its ready message
+sleep 1
+open "http://localhost:3000"

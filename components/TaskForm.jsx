@@ -3,12 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { validateTask } from '@/lib/schedule';
+import Icon from './Icon';
+import Button from './Button';
 
 const SCHEDULE_TYPES = [
-  { value: 'hourly',        label: 'Hourly',     hint: 'Every hour at X:mm' },
-  { value: 'daily',         label: 'Daily',      hint: 'Once per day at HH:MM' },
-  { value: 'adhoc_once',    label: 'Run Once',   hint: 'Fires immediately, once' },
-  { value: 'adhoc_n_times', label: 'Run N Times', hint: 'N runs with interval' },
+  { value: 'hourly',        label: 'Hourly',      hint: 'Every hour at X:mm',     icon: 'refresh' },
+  { value: 'daily',         label: 'Daily',       hint: 'Once per day at HH:MM',  icon: 'calendar' },
+  { value: 'adhoc_once',    label: 'Run Once',    hint: 'Fires immediately, once', icon: 'play' },
+  { value: 'adhoc_n_times', label: 'Run N Times', hint: 'N runs with interval',   icon: 'bolt' },
 ];
 
 function Input({ error, ...props }) {
@@ -44,7 +46,7 @@ function Label({ children, required }) {
 
 function FieldError({ msg }) {
   if (!msg) return null;
-  return <p style={{ fontSize: 12, color: '#f87171', marginTop: 5, display: 'flex', alignItems: 'center', gap: 4 }}><span>⚠</span>{msg}</p>;
+  return <p style={{ fontSize: 12, color: 'var(--danger-fg)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="warning" size={13} />{msg}</p>;
 }
 
 function Section({ title, children }) {
@@ -132,8 +134,8 @@ export default function TaskForm({ initial = {} }) {
     <form onSubmit={submit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {serverError && (
-        <div style={{ display: 'flex', gap: 10, padding: '12px 16px', borderRadius: 9, backgroundColor: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171', fontSize: 13.5 }}>
-          <span style={{ flexShrink: 0 }}>⚠</span> {serverError}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 'var(--r-md)', backgroundColor: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--danger-fg)', fontSize: 13.5 }}>
+          <Icon name="warning" size={16} /> {serverError}
         </div>
       )}
 
@@ -191,17 +193,18 @@ export default function TaskForm({ initial = {} }) {
               return (
                 <button key={t.value} type="button" onClick={() => { setForm(f => ({ ...f, schedule_type: t.value })); setErrors(e => ({ ...e, schedule_type: undefined })); }}
                   style={{
-                    padding: '10px 10px 8px',
-                    borderRadius: 9,
+                    padding: '12px 11px',
+                    borderRadius: 'var(--r-md)',
                     border: `1px solid ${active ? 'rgba(99,102,241,0.5)' : 'var(--border)'}`,
                     backgroundColor: active ? 'rgba(99,102,241,0.1)' : 'var(--bg-base)',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.15s',
+                    cursor: 'pointer', textAlign: 'left',
                     boxShadow: active ? '0 0 0 3px var(--accent-glow)' : 'none',
-                  }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: active ? '#a5b4fc' : 'var(--text-secondary)', marginBottom: 2 }}>{t.label}</div>
-                  <div style={{ fontSize: 11, color: active ? 'rgba(165,180,252,0.6)' : 'var(--text-muted)' }}>{t.hint}</div>
+                  }}
+                  onMouseEnter={e => { if (!active) e.currentTarget.style.borderColor = 'var(--border-light)'; }}
+                  onMouseLeave={e => { if (!active) e.currentTarget.style.borderColor = 'var(--border)'; }}>
+                  <Icon name={t.icon} size={16} style={{ color: active ? 'var(--accent-soft)' : 'var(--text-muted)', marginBottom: 8 }} />
+                  <div style={{ fontSize: 13, fontWeight: 600, color: active ? 'var(--accent-soft)' : 'var(--text-secondary)', marginBottom: 2 }}>{t.label}</div>
+                  <div style={{ fontSize: 11, color: active ? 'rgba(165,180,252,0.65)' : 'var(--text-muted)', lineHeight: 1.3 }}>{t.hint}</div>
                 </button>
               );
             })}
@@ -234,8 +237,8 @@ export default function TaskForm({ initial = {} }) {
         )}
 
         {st === 'adhoc_once' && (
-          <div style={{ display: 'flex', gap: 10, padding: '11px 14px', borderRadius: 8, backgroundColor: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', color: '#a5b4fc', fontSize: 13 }}>
-            <span style={{ flexShrink: 0 }}>ℹ</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderRadius: 'var(--r-md)', backgroundColor: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.2)', color: 'var(--accent-soft)', fontSize: 13 }}>
+            <Icon name="info" size={16} />
             Runs once within the next minute, then marks itself completed.
           </div>
         )}
@@ -265,20 +268,11 @@ export default function TaskForm({ initial = {} }) {
 
       {/* Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 4 }}>
-        <button type="submit" disabled={saving} style={{
-          padding: '9px 22px', borderRadius: 9, fontSize: 13.5, fontWeight: 600,
-          background: saving ? 'var(--bg-elevated)' : 'linear-gradient(135deg, #6366f1, #7c3aed)',
-          color: saving ? 'var(--text-muted)' : 'white',
-          border: '1px solid rgba(255,255,255,0.06)',
-          cursor: saving ? 'not-allowed' : 'pointer',
-          boxShadow: saving ? 'none' : '0 0 16px rgba(99,102,241,0.3)',
-        }}>
+        <Button type="submit" variant="primary" size="md" loading={saving} icon={saving ? undefined : (isEdit ? 'check' : 'plus')}>
           {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Task'}
-        </button>
-        <button type="button" onClick={() => router.back()} style={{ padding: '9px 18px', borderRadius: 9, fontSize: 13.5, fontWeight: 500, backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-          Cancel
-        </button>
-        {hasErrors && <span style={{ fontSize: 12, color: '#f87171', marginLeft: 4 }}>Fix errors above to continue</span>}
+        </Button>
+        <Button type="button" variant="secondary" size="md" onClick={() => router.back()}>Cancel</Button>
+        {hasErrors && <span style={{ fontSize: 12, color: 'var(--danger-fg)', marginLeft: 4, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="warning" size={13} />Fix errors above to continue</span>}
       </div>
     </form>
   );
