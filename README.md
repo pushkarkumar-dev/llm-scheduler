@@ -6,6 +6,19 @@ No cloud. No subscriptions. Runs entirely on your machine.
 
 ---
 
+## Screenshots
+
+![Dashboard](.github/screenshots/home.png)
+*Dashboard — task list with stats, status badges, and quick actions*
+
+![New Task](.github/screenshots/task.png)
+*Create task — schedule type selector with conditional fields*
+
+![Executions](.github/screenshots/execution.png)
+*Execution log — filterable history with expandable LLM responses*
+
+---
+
 ## Features
 
 - **4 schedule types** — hourly, daily, run-once, or run N times with a fixed interval
@@ -188,7 +201,7 @@ All endpoints return JSON. Error responses include `{ "error": "message" }`.
 ## Project Structure
 
 ```
-OpenTaskScheduler/
+llm-scheduler/
 ├── instrumentation.js     Registers the cron tick on server boot
 ├── schema.sql             Database DDL
 ├── .env.example           Environment variable template
