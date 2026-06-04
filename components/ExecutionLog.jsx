@@ -88,8 +88,8 @@ export default function ExecutionLog({ initialTaskId = '', tasks = [] }) {
   const showToast = (message, type = 'info') => setToast({ message, type });
   const limit = 25;
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const qs = new URLSearchParams();
       if (taskId) qs.set('taskId', taskId);
@@ -101,9 +101,9 @@ export default function ExecutionLog({ initialTaskId = '', tasks = [] }) {
       setRows(data.rows ?? []);
       setTotal(data.total ?? 0);
     } catch {
-      showToast('Failed to load executions.', 'error');
+      if (!silent) showToast('Failed to load executions.', 'error');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [taskId, status, page, view, initialTaskId]);
 
@@ -111,6 +111,28 @@ export default function ExecutionLog({ initialTaskId = '', tasks = [] }) {
   useEffect(() => { setPage(1); }, [taskId, status, view]);
   // When the category view changes, the task dropdown changes too — clear any task filter that's no longer visible.
   useEffect(() => { if (!initialTaskId) setTaskId(''); }, [view, initialTaskId]);
+
+  // Live updates: soft-reload after each manual run completes, and poll while a batch is active
+  // so 'running' rows and their transitions appear without a skeleton flash.
+  useEffect(() => {
+    const onChanged = () => load({ silent: true });
+    let timer = null;
+    const onActivity = (e) => {
+      if (e.detail?.active) {
+        if (!timer) timer = setInterval(() => load({ silent: true }), 2000);
+      } else {
+        if (timer) { clearInterval(timer); timer = null; }
+        load({ silent: true });
+      }
+    };
+    window.addEventListener('executions:changed', onChanged);
+    window.addEventListener('executions:activity', onActivity);
+    return () => {
+      window.removeEventListener('executions:changed', onChanged);
+      window.removeEventListener('executions:activity', onActivity);
+      if (timer) clearInterval(timer);
+    };
+  }, [load]);
 
   // Only offer tasks from the currently visible categories in the filter dropdown.
   const allowed = categoriesForView(view);

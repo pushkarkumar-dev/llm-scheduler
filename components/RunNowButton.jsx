@@ -23,6 +23,8 @@ export default function RunNowButton({ taskId, taskName, acceptsInput = false, i
     setState('running');
     setErrorMsg('');
     let ok = 0, failed = 0, lastErr = '';
+    // Tell any execution list on the page a batch is running so it can poll for 'running' rows.
+    window.dispatchEvent(new CustomEvent('executions:activity', { detail: { active: true } }));
     for (let i = 0; i < times; i++) {
       setProgress(times > 1 ? `${i + 1}/${times}` : '');
       try {
@@ -33,7 +35,9 @@ export default function RunNowButton({ taskId, taskName, acceptsInput = false, i
         const data = await res.json();
         if (data.success) ok++; else { failed++; lastErr = data.error ?? 'Unknown error'; }
       } catch { failed++; lastErr = 'Network error'; }
+      window.dispatchEvent(new Event('executions:changed')); // a run just finished
     }
+    window.dispatchEvent(new CustomEvent('executions:activity', { detail: { active: false } }));
     setProgress('');
     router.refresh();
     if (failed === 0) {
