@@ -168,7 +168,12 @@ Completed tasks can be edited to change their schedule type and will be re-activ
 
 ## Manual Runs
 
-Any task — including completed ones — can be triggered manually at any time via the **Run Now** button. Manual runs:
+Any task — including completed ones — can be triggered manually at any time via the **Run** button. Clicking it opens a small dialog where you can:
+
+- Choose **how many times** to run (default 1, up to 50) — runs execute sequentially, each as its own execution
+- Add optional run-time context, if the task accepts input
+
+Manual runs:
 
 - Execute immediately and record a `trigger = 'manual'` execution
 - Never change the task's `status`, `next_run_at`, or scheduled run count

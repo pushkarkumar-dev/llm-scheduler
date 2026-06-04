@@ -14,53 +14,51 @@ const STATES = {
 
 export default function RunNowButton({ taskId, taskName, acceptsInput = false, inputLabel }) {
   const [state, setState] = useState('idle');
+  const [progress, setProgress] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [modal, setModal] = useState(false);
   const router = useRouter();
 
-  async function run(input = '') {
+  async function run({ times = 1, input = '' }) {
     setState('running');
     setErrorMsg('');
-    try {
-      const res  = await fetch(`/api/tasks/${taskId}/run`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setState('success');
-        router.refresh();
-        setTimeout(() => setState('idle'), 3000);
-      } else {
-        setState('failed');
-        setErrorMsg(data.error ?? 'Unknown error');
-        setTimeout(() => setState('idle'), 5000);
-      }
-    } catch {
+    let ok = 0, failed = 0, lastErr = '';
+    for (let i = 0; i < times; i++) {
+      setProgress(times > 1 ? `${i + 1}/${times}` : '');
+      try {
+        const res  = await fetch(`/api/tasks/${taskId}/run`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ input }),
+        });
+        const data = await res.json();
+        if (data.success) ok++; else { failed++; lastErr = data.error ?? 'Unknown error'; }
+      } catch { failed++; lastErr = 'Network error'; }
+    }
+    setProgress('');
+    router.refresh();
+    if (failed === 0) {
+      setState('success');
+      setTimeout(() => setState('idle'), 3000);
+    } else {
       setState('failed');
-      setErrorMsg('Network error');
+      setErrorMsg(times > 1 ? `${failed} of ${times} failed` : lastErr);
       setTimeout(() => setState('idle'), 5000);
     }
   }
 
-  function handleClick() {
-    if (acceptsInput) setModal(true);
-    else run();
-  }
-
   const s = STATES[state];
+  const label = state === 'running' && progress ? `Running ${progress}` : s.label;
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       {modal && (
         <RunInputModal
-          taskName={taskName} label={inputLabel}
+          taskName={taskName} label={inputLabel} acceptsInput={acceptsInput}
           onCancel={() => setModal(false)}
-          onRun={(input) => { setModal(false); run(input); }}
+          onRun={({ times, input }) => { setModal(false); run({ times, input }); }}
         />
       )}
-      <button onClick={handleClick} disabled={state === 'running'} style={{
+      <button onClick={() => setModal(true)} disabled={state === 'running'} style={{
         display: 'inline-flex', alignItems: 'center', gap: 7,
         padding: '8px 16px', borderRadius: 'var(--r-md)',
         fontSize: 13, fontWeight: 600, lineHeight: 1,
@@ -70,7 +68,7 @@ export default function RunNowButton({ taskId, taskName, acceptsInput = false, i
       onMouseEnter={e => { if (state === 'idle') { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 0 36px rgba(99,102,241,0.45), inset 0 1px 0 rgba(255,255,255,0.15)'; } }}
       onMouseLeave={e => { if (state === 'idle') { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = s.shadow; } }}>
         <Icon name={s.icon} size={14} />
-        {s.label}
+        {label}
       </button>
       {errorMsg && <span style={{ fontSize: 12, color: 'var(--danger-fg)' }}>{errorMsg}</span>}
     </div>

@@ -77,22 +77,31 @@ export default function Dashboard() {
     }
   }
 
-  // Tasks that accept input open a modal first; others run immediately.
+  // Clicking Run always opens the modal so you can set the count (and input, if supported).
   function handleRunClick(task) {
-    if (task.accepts_input) setRunPrompt(task);
-    else runNow(task.id);
+    setRunPrompt(task);
   }
 
-  async function runNow(id, input = '') {
+  // Runs the task `times` sequentially — each run is its own execution.
+  async function runNow(id, { times = 1, input = '' } = {}) {
     setActing(id + 'run');
+    let ok = 0, failed = 0;
     try {
-      const res  = await fetch(`/api/tasks/${id}/run`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input }),
-      });
-      const data = await res.json();
-      showToast(data.success ? 'Task ran successfully.' : `Run failed: ${data.error ?? 'Unknown error'}`, data.success ? 'success' : 'error');
+      for (let i = 0; i < times; i++) {
+        if (times > 1) showToast(`Running ${i + 1} of ${times}…`, 'info');
+        try {
+          const res  = await fetch(`/api/tasks/${id}/run`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ input }),
+          });
+          const data = await res.json();
+          data.success ? ok++ : failed++;
+        } catch { failed++; }
+      }
+      const msg = times > 1
+        ? `Ran ${times}× — ${ok} succeeded${failed ? `, ${failed} failed` : ''}.`
+        : (ok ? 'Task ran successfully.' : 'Run failed.');
+      showToast(msg, failed ? 'error' : 'success');
       const list = await (await fetch('/api/tasks')).json();
       setTasks(Array.isArray(list) ? list : []);
     } catch {
@@ -128,8 +137,9 @@ export default function Dashboard() {
         <RunInputModal
           taskName={runPrompt.name}
           label={runPrompt.input_label}
+          acceptsInput={!!runPrompt.accepts_input}
           onCancel={() => setRunPrompt(null)}
-          onRun={(input) => { const id = runPrompt.id; setRunPrompt(null); runNow(id, input); }}
+          onRun={({ times, input }) => { const id = runPrompt.id; setRunPrompt(null); runNow(id, { times, input }); }}
         />
       )}
 
