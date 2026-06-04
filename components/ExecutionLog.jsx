@@ -109,6 +109,12 @@ export default function ExecutionLog({ initialTaskId = '', tasks = [] }) {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { setPage(1); }, [taskId, status, view]);
+  // When the category view changes, the task dropdown changes too — clear any task filter that's no longer visible.
+  useEffect(() => { if (!initialTaskId) setTaskId(''); }, [view, initialTaskId]);
+
+  // Only offer tasks from the currently visible categories in the filter dropdown.
+  const allowed = categoriesForView(view);
+  const visibleTasks = tasks.filter(t => allowed.includes(t.category ?? 'experimental'));
 
   async function deleteRow(id) {
     setConfirm(null);
@@ -144,10 +150,10 @@ export default function ExecutionLog({ initialTaskId = '', tasks = [] }) {
 
       {/* Filters */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
-        {tasks.length > 0 && (
+        {visibleTasks.length > 0 && (
           <select value={taskId} onChange={e => setTaskId(e.target.value)} style={selStyle}>
             <option value="">All tasks</option>
-            {tasks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            {visibleTasks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         )}
         <select value={status} onChange={e => setStatus(e.target.value)} style={selStyle}>

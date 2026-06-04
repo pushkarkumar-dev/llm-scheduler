@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   status          ENUM('active','paused','completed') NOT NULL DEFAULT 'active',
   next_run_at     DATETIME,
 
-  category        ENUM('production','experimental','test') NOT NULL DEFAULT 'experimental',
+  category        ENUM('production','experimental','private') NOT NULL DEFAULT 'experimental',
 
   accepts_input   TINYINT(1) NOT NULL DEFAULT 0,  -- if 1, manual runs can supply extra context
   input_label     VARCHAR(255),                   -- guidance text shown in the run-time input field

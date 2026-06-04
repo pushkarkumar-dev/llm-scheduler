@@ -4,7 +4,7 @@ import ExecutionLog from '@/components/ExecutionLog';
 export const metadata = { title: 'Executions — LLM Scheduler' };
 
 export default async function ExecutionsPage() {
-  const tasks = await query('SELECT id, name FROM tasks ORDER BY name ASC');
+  const tasks = await query('SELECT id, name, category FROM tasks ORDER BY name ASC');
 
   return (
     <div>

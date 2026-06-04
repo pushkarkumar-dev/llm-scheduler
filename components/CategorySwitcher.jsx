@@ -8,15 +8,15 @@ const TABS = [
   { value: 'all',          label: 'All' },
   { value: 'production',   label: 'Production' },
   { value: 'experimental', label: 'Experimental' },
-  { value: 'test',         label: 'Test', locked: true },
+  { value: 'private',      label: 'Private', locked: true },
 ];
 
 export default function CategorySwitcher() {
-  const { view, setView, testUnlocked, unlockTest, hydrated } = useCategory();
+  const { view, setView, unlocked, unlock, hydrated } = useCategory();
   const [askPw, setAskPw] = useState(false);
 
   function pick(tab) {
-    if (tab.value === 'test' && !testUnlocked) { setAskPw(true); return; }
+    if (tab.value === 'private' && !unlocked) { setAskPw(true); return; }
     setView(tab.value);
   }
 
@@ -27,7 +27,7 @@ export default function CategorySwitcher() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: 3, borderRadius: 10, backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
         {TABS.map(tab => {
           const active = view === tab.value;
-          const gated = tab.locked && !testUnlocked;
+          const gated = tab.locked && !unlocked;
           return (
             <button key={tab.value} onClick={() => pick(tab)} style={{
               display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -39,7 +39,7 @@ export default function CategorySwitcher() {
             }}
             onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--text-secondary)'; }}
             onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--text-muted)'; }}>
-              {tab.locked && <Icon name={testUnlocked ? 'lockOpen' : 'lock'} size={12} style={{ color: gated ? 'var(--text-muted)' : 'var(--accent-soft)' }} />}
+              {tab.locked && <Icon name={unlocked ? 'lockOpen' : 'lock'} size={12} style={{ color: gated ? 'var(--text-muted)' : 'var(--accent-soft)' }} />}
               {tab.label}
             </button>
           );
@@ -49,7 +49,7 @@ export default function CategorySwitcher() {
       {askPw && (
         <PasswordModal
           onClose={() => setAskPw(false)}
-          onUnlocked={() => { unlockTest(); setView('test'); setAskPw(false); }}
+          onUnlocked={() => { unlock(); setView('private'); setAskPw(false); }}
         />
       )}
     </>
@@ -92,8 +92,8 @@ function PasswordModal({ onClose, onUnlocked }) {
         <div style={{ display: 'flex', width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 11, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.28)', color: 'var(--accent-soft)', marginBottom: 16 }}>
           <Icon name="lock" size={18} />
         </div>
-        <p style={{ fontSize: 15, fontWeight: 650, marginBottom: 4 }}>Unlock Test tasks</p>
-        <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 18, lineHeight: 1.5 }}>Enter the password to reveal Test-category tasks for this session.</p>
+        <p style={{ fontSize: 15, fontWeight: 650, marginBottom: 4 }}>Unlock Private tasks</p>
+        <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 18, lineHeight: 1.5 }}>Enter the password to reveal Private-category tasks for this session.</p>
         <input
           autoFocus type="password" value={pw} onChange={e => { setPw(e.target.value); setError(''); }}
           placeholder="Password"

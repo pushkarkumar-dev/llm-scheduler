@@ -1,5 +1,5 @@
-// UI-level gate for the Test category. Not real security — the password just
-// keeps Test tasks out of casual view. Kept server-side so it isn't shipped in
+// UI-level gate for the Private category. Not real security — the password just
+// keeps Private tasks out of casual view. Kept server-side so it isn't shipped in
 // the client bundle. Configure via HIDDEN_CATEGORY_PASSWORD (defaults to "Test").
 export async function POST(request) {
   try {

@@ -25,7 +25,7 @@ No cloud. No subscriptions. Runs entirely on your machine.
 - **Automatic execution** — a single cron tick fires every minute and runs all due tasks
 - **Manual run anytime** — trigger any task on demand, regardless of its schedule state
 - **Run-time input** — optionally let a task accept one-off extra context at manual run time, layered on top of its base prompt without editing the task
-- **Categories** — organize tasks into Production / Experimental / Test, filter by category from the navbar, and keep Test tasks behind a UI password gate
+- **Categories** — organize tasks into Production / Experimental / Private, filter by category from the navbar, and keep Private tasks behind a UI password gate
 - **Full execution history** — every run is recorded with the prompt sent, response, error (if any), and duration
 - **Re-activate completed tasks** — edit a completed task to give it a new schedule and it comes back to life
 - **Pause / resume** — suspend a task without deleting it
@@ -187,15 +187,15 @@ This is useful when a task is mostly stable but you occasionally want to nudge a
 
 ## Categories
 
-Every task has a **category** — `Production`, `Experimental`, or `Test` — set in the task form and changeable any time by editing the task. Use the navbar switcher to filter the Dashboard and Executions log:
+Every task has a **category** — `Production`, `Experimental`, or `Private` — set in the task form and changeable any time by editing the task. Use the navbar switcher to filter the Dashboard and Executions log:
 
 - **All** (default) — shows Production + Experimental together
 - **Production** / **Experimental** — show just that category
-- **Test** — hidden by default; selecting it prompts for a password, then reveals Test tasks for the rest of the browser session
+- **Private** — hidden by default; selecting it prompts for a password, then reveals Private tasks for the rest of the browser session
 
-Categories are purely organizational — they **don't affect scheduling**. A Test or Experimental task still runs on its schedule exactly like a Production one.
+Categories are purely organizational — they **don't affect scheduling**. A Private or Experimental task still runs on its schedule exactly like a Production one.
 
-> The Test gate is a **UI-level convenience for decluttering, not security** — anyone with access to the app or database can still reach the data. Set the password via `HIDDEN_CATEGORY_PASSWORD` in `.env.local` (defaults to `Test`).
+> The Private gate is a **UI-level convenience for decluttering, not security** — anyone with access to the app or database can still reach the data. Set the password via `HIDDEN_CATEGORY_PASSWORD` in `.env.local`.
 
 ---
 
